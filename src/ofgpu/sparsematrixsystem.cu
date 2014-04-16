@@ -100,39 +100,43 @@ inline int _ConvertSMVer2Cores(int major, int minor)
 }
 // end of GPU Architecture definitions
 
+// Prints devices info 
+void SparseMatrixSystem::printDevicesInfo() {
+  std::cout << "ofgpu CUDA info begin" << std::endl;
 
-  void
-  SparseMatrixSystem::setDevice(int const requestedDevice)
-  {
-    std::cout << "ofgpu CUDA info begin" << std::endl;
+  int deviceCount = 0, driverVersion = 0, runtimeVersion = 0;
+  cudaGetDeviceCount(&deviceCount);
 
-    if (0 <= m_device) {
-      std::cout << "Warning: CUDA device already set as: " << m_device << std::endl;
-      return;
-    }
+  std::cout << "Available CUDA devices" << std::endl;
 
-	int deviceCount = 0, driverVersion = 0, runtimeVersion = 0;
-	cudaGetDeviceCount(&deviceCount);
-
-	std::cout << "Available CUDA devices" << std::endl;
-
-	for (int i = 0; deviceCount > i; ++i) {
-	  cudaSetDevice(i);
-	  cudaDeviceProp prop;
-	  cudaGetDeviceProperties(&prop, i);
+  for (int i = 0; deviceCount > i; ++i) {
+    cudaSetDevice(i);
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, i);
       cudaDriverGetVersion(&driverVersion);
       cudaRuntimeGetVersion(&runtimeVersion);
 
-	  std::cout << "  Device: " << i << std::endl
-	            << "    Name: \"" << prop.name << "\"" << std::endl
-				<< "    Driver Version: " << driverVersion/1000 << "." << (driverVersion%100)/10 << std::endl
-				<< "    Runtime Version: " << runtimeVersion/1000 << "." << (runtimeVersion%100)/10 << std::endl
-	            << "    Capability: " << prop.major << "." << prop.minor << std::endl
-	            << "    Processors: " << prop.multiProcessorCount << std::endl
-	            << "    Cores: " << prop.multiProcessorCount * _ConvertSMVer2Cores(prop.major, prop.minor) << std::endl
-	            << "    Memory (MBytes): " << (float)prop.totalGlobalMem/1048576.0f << std::endl
-				<< "    GPU Clock rate (GHz): " << prop.clockRate * 1e-6f << std::endl;
-	}
+    std::cout << "  Device: " << i << std::endl
+              << "    Name: \"" << prop.name << "\"" << std::endl
+        << "    Driver Version: " << driverVersion/1000 << "." << (driverVersion%100)/10 << std::endl
+        << "    Runtime Version: " << runtimeVersion/1000 << "." << (runtimeVersion%100)/10 << std::endl
+              << "    Capability: " << prop.major << "." << prop.minor << std::endl
+              << "    Processors: " << prop.multiProcessorCount << std::endl
+              << "    Cores: " << prop.multiProcessorCount * _ConvertSMVer2Cores(prop.major, prop.minor) << std::endl
+              << "    Memory (MBytes): " << (float)prop.totalGlobalMem/1048576.0f << std::endl
+        << "    GPU Clock rate (GHz): " << prop.clockRate * 1e-6f << std::endl;
+  }
+}
+
+  // Sets one GPU device.
+  void SparseMatrixSystem::setDevice(int const requestedDevice)
+  {
+    SparseMatrixSystem::printDevicesInfo();
+    
+    if (0 <= m_device) {
+      std::cout << "Warning: CUDA device already set as: " << m_device << std::endl;
+      return;
+    }    
 
     m_device = requestedDevice;
     cudaSetDevice(m_device);
@@ -142,9 +146,55 @@ inline int _ConvertSMVer2Cores(int major, int minor)
       std::cout << "Warning: Could not find requested CUDA device = " << requestedDevice << std::endl;
     }
 
-	std::cout << "Selected CUDA device: " << m_device << std::endl
+	 std::cout << "Selected CUDA device: " << m_device << std::endl
 	          << "ofgpu CUDA info end" << std::endl
               << std::endl;
+  }
+
+  // Sets multiple GPU devices (as much as is available, without load balansing)
+  void SparseMatrixSystem::setMultipleDevices()
+  {
+    SparseMatrixSystem::printDevicesInfo();
+    int deviceCount = 0;
+    cudaGetDeviceCount(&deviceCount);
+    
+    if (0 <= m_device) {
+      std::cout << "Warning: CUDA device already set as: " << m_device << std::endl;
+      return;
+    }    
+
+    // "The trick to using multiple GPUs with the CUDA runtime API is realizing that each GPU needs to be controlled by a different CPU thread."
+    // TODO define memory properly 
+    int N = 1;
+    // For each device
+    for (int requestedDevice=0; requestedDevice < deviceCount; requestedDevice++) {
+      // allocate memory for host (CPU) thread
+      float *mem = (float*)malloc( sizeof(float) * N );
+      HANDLE_NULL( mem );
+
+      // TODO check it: Starting thread with default ("cudaSetDevice") task and with deviceID as parameter
+      CUTThread thread = start_thread( SparseMatrixSystem::routine,  requestedDevice);
+      end_thread(thread);
+
+      // checking that device is set?
+      m_device = requestedDevice;
+      cudaSetDevice(m_device);
+      cudaGetDevice(&m_device);
+
+      if (requestedDevice != m_device) {
+        std::cout << "Warning: Could not find requested CUDA device = " << requestedDevice << std::endl;
+      }
+      else {
+        std::cout << "Selected CUDA device = " << m_device << std::endl;
+      }
+
+    }
+  }
+
+  // Setting one cda device 
+  void* SparseMatrixSystem::routine( int deviceID) 
+  {
+    HANDLE_ERROR( cudaSetDevice( deviceID ) );
   }
 
 

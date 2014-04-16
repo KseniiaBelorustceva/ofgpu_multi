@@ -30,5 +30,7 @@ OFGPU_EXPORT void ofgpuConfig(int const cudaDevice)
 {
   using namespace ofgpu;
 
-  the<SparseMatrixSystem>().setDevice(cudaDevice);
+  //the<SparseMatrixSystem>().setDevice(cudaDevice);
+  // Attempt to load all available devices
+    the<SparseMatrixSystem>().setMultipleDevices();
 }

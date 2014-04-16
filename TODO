@@ -1,0 +1,7 @@
+(!) Actual task, that should be delegated, is solve: how to delegate THIS task to all GPUs using threads?
+
+/home/tertti/Desktop/kseniia/masters/ofgpu_multi/src/ofgpu/sparsematrixsystem.h
+
+    /** Provides a cache of previous call to avoid reallocation of device memory */
+    template<class T_Solver>
+    void solve(SparseMatrixArgs const & args);

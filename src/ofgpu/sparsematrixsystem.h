@@ -44,6 +44,15 @@ namespace ofgpu
     /** Set CUDA device */
     void setDevice(int const requestedDevice);
 
+    /** Prints devices info */
+    void printDevicesInfo();
+
+     /** Set multiple CUDA devices */
+    void setMultipleDevices();
+
+    /** Setting requested cuda device */ 
+    void* routine( int deviceID); 
+
     /** Provides a cache of previous call to avoid reallocation of device memory */
     template<class T_Solver>
     void solve(SparseMatrixArgs const & args);
