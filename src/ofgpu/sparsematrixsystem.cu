@@ -191,7 +191,7 @@ void SparseMatrixSystem::printDevicesInfo() {
     }
   }
 
-  // Setting one cda device 
+  // Setting one cuda device 
   void* SparseMatrixSystem::routine( int deviceID) 
   {
     HANDLE_ERROR( cudaSetDevice( deviceID ) );
